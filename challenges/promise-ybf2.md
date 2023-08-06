@@ -8,26 +8,19 @@
 
 ## 内容
 关闭 copilot
-不参考文档
-AI 找 bug
 迭代器模拟 promise
 
 ```ts
+type callbackType<T> = (res?:T) =>void
 
-type callbackType = (res:any) => any
-type handlerType = (
-  resolve:callbackType,
-  reject:callbackType
-) => void
-
-class FakePromise {
-  handler: handlerType
-  thenQueue: [callbackType, callbackType][]
-  endCatch: callbackType
-  finalCallback: callbackType
+class FakePromise<T> {
+  handler: (resolve: callbackType<T>, reject: callbackType<T>) =>void
+  thenQueue: [callbackType<T>, callbackType<T>][]
   status: 'padding' | 'fulfilled' | 'rejected'
+  endCatch?: callbackType<T>
+  finalCallback?: callbackType<T>
 
-  constructor (handler:handlerType) {
+  constructor (handler?:(resolve: callbackType<T>, reject: callbackType<T>) =>void) {
     this.handler = handler
     this.status = 'padding'
     this.thenQueue = []
@@ -71,15 +64,15 @@ class FakePromise {
     return temp
   }
 
-  then (onfulfilled:callbackType, onrejected?:callbackType) {
+  then (onfulfilled:callbackType<T>, onrejected?:callbackType<T>) {
     this.thenQueue.push([onfulfilled, onrejected])
     return this
   }
-  catch (onrejected:callbackType) {
+  catch (onrejected:callbackType<T>) {
     this.endCatch = onrejected
     return this
   }
-  finally (callback:callbackType) {
+  finally (callback:callbackType<T>) {
     this.finalCallback = callback
     return this
   }
@@ -95,7 +88,7 @@ class FakePromise {
 }
 
 
-const temp:any = new FakePromise((resolve, reject) => {
+const temp:FakePromise<number> = new FakePromise<number>((resolve, reject) => {
   resolve (1)
 })
   .then (
@@ -145,31 +138,5 @@ const temp:any = new FakePromise((resolve, reject) => {
     console.log('finally', e)
   })
 
-
-
-// new Promise<number>((resolve, reject) => {
-//   reject (1)
-// }).then (
-//   res => {
-//     console.log('then-1-1', res)
-//     return res + 1
-//   },
-//   // res => {
-//   //   console.log('then-1-2', res)
-//   //   return Promise.reject(res + 1)
-//   // }
-// ).then (
-//   res => {
-//     console.log('then-2-1', res)
-//     return res + 1
-//   },
-//   // res => {
-//   //   console.log('then-2-2', res)
-//   //   return res + 1
-//   // }
-// )
-//   .catch(e => {
-//     console.log(e)
-//   })
 
 ```
