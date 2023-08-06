@@ -9,7 +9,7 @@
 
 ## 挑战内容
 
-1. [实现简单的 Promise](./challenges/promise.md)
+1. [实现简单的 Promise](challenges/01_Promise/promise.md)
 
 ## 更多挑战
 
