@@ -10,52 +10,39 @@
 
 ```ts
 type Callback<T> = (value: T) => void;
-
+type ErrorHandler = (error: Error) => void;
 
 class FakePromise<T> {
-  private value: T | undefined;
-  private error: Error | undefined;
-  private onFulfilledCallbacks: Callback<T>[] = [];
-  private onRejectedCallbacks: Callback<Error>[] = [];
-  private resolved: boolean = false;
-  private rejected: boolean = false;
+  value?: T;
+  error?: Error;
+  onFulfilledCallbacks: Callback<T>[] = [];
+  onRejectedCallbacks: ErrorHandler[] = [];
 
-  constructor(handler: (resolve: Callback<T>, reject: Callback<Error>) => void) {
-    const resolve: Callback<T> = (value: T) => {
-      if (!this.resolved && !this.rejected) {
+  constructor(handler: (resolve: Callback<T>, reject: ErrorHandler) => void) {
+    handler(
+      (value) => {
         this.value = value;
-        this.resolved = true;
-        this.onFulfilledCallbacks.forEach(callback => callback(value));
-      }
-    };
-
-    const reject: Callback<Error> = (error: Error) => {
-      if (!this.resolved && !this.rejected) {
+        this.onFulfilledCallbacks.forEach((callback) => callback(value));
+      },
+      (error) => {
         this.error = error;
-        this.rejected = true;
-        this.onRejectedCallbacks.forEach(callback => callback(error));
+        this.onRejectedCallbacks.forEach((callback) => callback(error));
       }
-    };
-
-    try {
-      handler(resolve, reject);
-    } catch (error) {
-      reject(error);
-    }
+    );
   }
 
   then(callback: Callback<T>): FakePromise<T> {
-    if (this.resolved) {
-      callback(this.value!);
+    if (this.value !== undefined) {
+      callback(this.value);
     } else {
       this.onFulfilledCallbacks.push(callback);
     }
     return this;
   }
 
-  catch(callback: Callback<Error>): FakePromise<T> {
-    if (this.rejected) {
-      callback(this.error!);
+  catch(callback: ErrorHandler): FakePromise<T> {
+    if (this.error !== undefined) {
+      callback(this.error);
     } else {
       this.onRejectedCallbacks.push(callback);
     }
@@ -63,7 +50,8 @@ class FakePromise<T> {
   }
 }
 
-const case1 = new FakePromise<number>((resolve) => {
+// 执行您的测试案例
+const case1 = new FakePromise((resolve) => {
   setTimeout(() => {
     resolve(1);
   });
@@ -71,9 +59,9 @@ const case1 = new FakePromise<number>((resolve) => {
 
 case1.then(console.log); // => 1
 
-const case2 = new FakePromise<number>((resolve, reject) => {
+const case2 = new FakePromise((resolve, reject) => {
   setTimeout(() => {
-    reject(Error('wrong'));
+    reject(Error("wrong"));
   });
 });
 
@@ -85,56 +73,17 @@ const case3 = new FakePromise<number>((resolve) => {
   });
 });
 
-case3.then(data => data++).then(console.log); // => 2
+case3.then((data) => data++).then(console.log); // => 2
 
-const case4 = new FakePromise<number>((resolve) => {
+const case4 = new FakePromise((resolve) => {
   resolve(4);
 });
 
 case4.then(console.log); // => 4
 
-const case5 = new FakePromise<number>((resolve, reject) => {
-  reject(Error('wrong'));
+const case5 = new FakePromise((resolve, reject) => {
+  reject(Error("wrong"));
 });
 
 case5.catch(console.error); // => Error('wrong')
-
-
-const case1 = new FakePromise((resolve, reject) => {
-  setTimeout(() => {
-    resolve(1)
-  })
-})
-
-case1.then(console.log) // => 1
-
-const case2 = new FakePromise((resolve, reject) => {
-  setTimeout(() => {
-    reject(Error('wrong'))
-  })
-})
-
-case2.catch(console.error) // => Error('wrong')
-
-const case3 = new FakePromise((resolve, reject) => {
-  setTimeout(() => {
-    resolve(1)
-  })
-})
-
-case3.then(data => data++).then(console.log) // => 2
-
-
-const case4 = new FakePromise((resolue, reject) => {
-  resolve(4)
-})
-
-case4.then(console.log) // => 4
-
-const case5 = new FakePromise((resolve, reject) => {
-  reject(Error('wrong'))
-})
-
-case5.catch(console.error) // => Error('wrong')
-
 ```
