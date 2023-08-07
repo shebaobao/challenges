@@ -11,6 +11,7 @@
 ```ts
 type Callback<T> = (value: T) => void;
 
+
 class FakePromise<T> {
   private value: T | undefined;
   private error: Error | undefined;
