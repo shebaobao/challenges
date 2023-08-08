@@ -6,35 +6,48 @@ class FakePromise<T> {
   error?: Error
   onFulfilledCallbacks: Callback<T>[] = []
   onRejectedCallbacks: ErrorHandler[] = []
+  handler
 
   constructor(handler: (resolve: Callback<T>, reject: ErrorHandler) => void) {
-    handler(
+    this.handler=handler
+    
+    setTimeout(() => {
+      this.execute()
+    })
+  }
+
+  execute() {
+    this.handler(
       (value) => {
-        this.value = value
-        this.onFulfilledCallbacks.forEach(callback => callback(value))
+        this.value = value;
+        setTimeout(() => {
+          this.onFulfilledCallbacks.forEach(callback => callback(value));
+        });
       },
       (error) => {
-        this.error = error
-        this.onRejectedCallbacks.forEach(callback => callback(error))
+        this.error = error;
+        setTimeout(() => {
+          this.onRejectedCallbacks.forEach(callback => callback(error));
+        });
       }
-    )
+    );
   }
+  
 
-  then(callback: Callback<T>): FakePromise<T> {
-    if (this.value !== undefined) {
-      callback(this.value)
-    } else {
-      this.onFulfilledCallbacks.push(callback)
-    }
-    return this
+  then<U>(callback: (value: T) => U): FakePromise<U> {
+    const newPromise = new FakePromise<U>((resolve) => {
+      this.onFulfilledCallbacks.push((value) => {
+        const result = callback(value);
+        resolve(result);
+      });
+    });
+
+    return newPromise;
   }
-
+  
   catch(callback: ErrorHandler): FakePromise<T> {
-    if (this.error !== undefined) {
-      callback(this.error)
-    } else {
-      this.onRejectedCallbacks.push(callback)
-    }
+    this.onRejectedCallbacks.push(callback)
+
     return this
   }
 }

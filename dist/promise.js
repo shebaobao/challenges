@@ -3,30 +3,35 @@ class FakePromise {
     constructor(handler) {
         this.onFulfilledCallbacks = [];
         this.onRejectedCallbacks = [];
-        handler((value) => {
+        this.handler = handler;
+        setTimeout(() => {
+            this.execute();
+        });
+    }
+    execute() {
+        this.handler((value) => {
             this.value = value;
-            this.onFulfilledCallbacks.forEach(callback => callback(value));
+            setTimeout(() => {
+                this.onFulfilledCallbacks.forEach(callback => callback(value));
+            });
         }, (error) => {
             this.error = error;
-            this.onRejectedCallbacks.forEach(callback => callback(error));
+            setTimeout(() => {
+                this.onRejectedCallbacks.forEach(callback => callback(error));
+            });
         });
     }
     then(callback) {
-        if (this.value !== undefined) {
-            callback(this.value);
-        }
-        else {
-            this.onFulfilledCallbacks.push(callback);
-        }
-        return this;
+        const newPromise = new FakePromise((resolve) => {
+            this.onFulfilledCallbacks.push((value) => {
+                const result = callback(value);
+                resolve(result);
+            });
+        });
+        return newPromise;
     }
     catch(callback) {
-        if (this.error !== undefined) {
-            callback(this.error);
-        }
-        else {
-            this.onRejectedCallbacks.push(callback);
-        }
+        this.onRejectedCallbacks.push(callback);
         return this;
     }
 }
