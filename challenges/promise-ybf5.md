@@ -18,7 +18,6 @@ Promise A+规则:
 ## 内容
 Promise ts实现
 ```ts
-
 enum PromiseStatus {
   PENDING = 'pending',
   FULFILLED = 'fulfilled',
@@ -66,14 +65,18 @@ class MyPromise<T = any> {
     onFulfilled?: ((value: T) => TResult1 | MyPromise<TResult1>) | null,
     onRejected?: ((reason: any) => TResult2 | MyPromise<TResult2>) | null
   ): MyPromise<TResult1 | TResult2> {
-    let promise2: MyPromise<TResult1 | TResult2>
+    let promise2!: MyPromise<TResult1 | TResult2>
 
     if (this.status === PromiseStatus.FULFILLED) {
       promise2 = new MyPromise((resolve, reject) => {
         setTimeout(() => {
           try {
-            const x = onFulfilled(this.value);
-            this.resolvePromise(promise2, x, resolve, reject)
+            if (typeof onFulfilled !== 'function') {
+              resolve(this.value as any);
+            } else {
+              const x = onFulfilled(this.value as any);
+              this.resolvePromise(promise2, x, resolve, reject)
+            }
           }
           catch (e) {
             reject(e);
@@ -86,8 +89,12 @@ class MyPromise<T = any> {
       promise2 = new MyPromise((resolve, reject) => {
         setTimeout(() => {
           try {
-            const x = onRejected(this.reason);
-            this.resolvePromise(promise2, x, resolve, reject)
+            if (typeof onRejected !== 'function') {
+              reject(this.reason);
+            } else {
+              const x = onRejected(this.reason);
+              this.resolvePromise(promise2, x, resolve, reject)
+            }
           }
           catch (e) {
             reject(e);
@@ -101,8 +108,12 @@ class MyPromise<T = any> {
         this.onFulfilledCallbacks.push(() => {
           setTimeout(() => {
             try {
-              const x = onFulfilled(this.value);
-              this.resolvePromise(promise2, x, resolve, reject)
+              if (typeof onFulfilled !== 'function') {
+                resolve(this.value as any);
+              } else {
+                const x = onFulfilled(this.value as any);
+                this.resolvePromise(promise2, x, resolve, reject)
+              }
             }
             catch (e) {
               reject(e);
@@ -112,8 +123,12 @@ class MyPromise<T = any> {
         this.onRejectedCallbacks.push(() => {
           setTimeout(() => {
             try {
-              const x = onRejected(this.reason);
-              this.resolvePromise(promise2, x, resolve, reject)
+              if (typeof onRejected !== 'function') {
+                reject(this.reason);
+              } else {
+                const x = onRejected(this.reason);
+                this.resolvePromise(promise2, x, resolve, reject)
+              }
             }
             catch (e) {
               reject(e);
@@ -214,6 +229,5 @@ temp.then(
       })
     }
   )
-
 
 ```
