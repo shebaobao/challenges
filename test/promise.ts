@@ -1,90 +1,173 @@
-type Callback<T> = (value: T) => void
-type ErrorHandler = (error: Error) => void
+class FakePromise<T = any> {
+  state: "pending" | "fulfilled" | "rejected" = "pending";
+  data?: T | any;
+  onFulfilledCallback: ((value: T) => void)[] = [];
+  onRejectedCallback: ((reason: any) => void)[] = [];
 
-class FakePromise<T> {
-  value?: T
-  error?: Error
-  onFulfilledCallbacks: Callback<T>[] = []
-  onRejectedCallbacks: ErrorHandler[] = []
-  handler
-
-  constructor(handler: (resolve: Callback<T>, reject: ErrorHandler) => void) {
-    this.handler=handler
-    
-    setTimeout(() => {
-      this.execute()
-    })
-  }
-
-  execute() {
-    this.handler(
-      (value) => {
-        this.value = value;
-        setTimeout(() => {
-          this.onFulfilledCallbacks.forEach(callback => callback(value));
-        });
-      },
-      (error) => {
-        this.error = error;
-        setTimeout(() => {
-          this.onRejectedCallbacks.forEach(callback => callback(error));
-        });
-      }
-    );
-  }
-  
-
-  then<U>(callback: (value: T) => U): FakePromise<U> {
-    const newPromise = new FakePromise<U>((resolve) => {
-      this.onFulfilledCallbacks.push((value) => {
-        const result = callback(value);
-        resolve(result);
+  constructor(executor: (resolve: (value: T) => void, reject: (reason: any) => void) => void) {
+    const resolve = (value: T) => {
+      setTimeout(() => {
+        if (this.state === "pending") {
+          this.state = "fulfilled";
+          this.data = value;
+          this.onFulfilledCallback.forEach((callback) => callback(value));
+        }
       });
-    });
+    };
 
-    return newPromise;
+    const reject = (reason: any) => {
+      setTimeout(() => {
+        if (this.state === "pending") {
+          this.state = "rejected";
+          this.data = reason;
+          this.onRejectedCallback.forEach((callback) => callback(reason));
+        }
+      });
+    };
+
+    try {
+      executor(resolve, reject);
+    } catch (reason) {
+      reject(reason);
+    }
   }
-  
-  catch(callback: ErrorHandler): FakePromise<T> {
-    this.onRejectedCallbacks.push(callback)
 
-    return this
+  then<U>(onFulfilled?: ((value: T) => U) | null, onRejected?: ((reason: any) => U) | null): FakePromise<U> {
+    return new FakePromise<U>((resolve, reject) => {
+      const handleFulfilled = (value: T) => {
+        setTimeout(() => {
+          if (typeof onFulfilled === "function") {
+            try {
+              const x = onFulfilled(this.data);
+              promiseResolutionProcedure(this as FakePromise, x, resolve, reject);
+            } catch (e) {
+              reject(e);
+            }
+          } else {
+            resolve(this.data);
+          }
+        });
+      };
+
+      const handleRejected = (reason: any) => {
+        setTimeout(() => {
+          if (typeof onRejected === "function") {
+            try {
+              const x = onRejected(this.data);
+              promiseResolutionProcedure(this as FakePromise, x, resolve, reject);
+            } catch (e) {
+              reject(e);
+            }
+          } else {
+            reject(this.data);
+          }
+        });
+      };
+
+      if (this.state === "fulfilled") {
+        handleFulfilled(this.data);
+      } else if (this.state === "rejected") {
+        handleRejected(this.data);
+      } else if (this.state === "pending") {
+        this.onFulfilledCallback.push(handleFulfilled);
+        this.onRejectedCallback.push(handleRejected);
+      }
+    });
+  }
+
+  catch<U>(onRejected: (reason: any) => U): FakePromise<U> {
+    return this.then(null, onRejected);
   }
 }
 
-// 执行您的测试案例
-const case1 = new FakePromise((resolve) => {
+function promiseResolutionProcedure<U>(
+  promise2: FakePromise<U>,
+  x: any,
+  resolve: (value: U) => void,
+  reject: (reason: any) => void
+) {
+  if (promise2 === x) {
+    return reject(new TypeError("Chaining cycle detected for promise"));
+  }
+
+  if (x instanceof FakePromise) {
+    switch (x.state){
+      case 'pending':
+        x.then(resolve, reject);
+        break;
+      case 'fulfilled':
+        resolve(x.data);
+        break;
+      case 'rejected':
+        reject(x.data);
+    }
+    return;
+  }
+
+  if (x && (typeof x === "object" || typeof x === "function")) {
+    let isCalled = false;
+
+    try {
+      if (typeof x.then === "function") {
+        x.then.call(
+          x,
+          (y: any) => {
+            if (isCalled) return;
+            isCalled = true;
+            return promiseResolutionProcedure(promise2, y, resolve, reject);
+          },
+          (r: any) => {
+            if (isCalled) return;
+            isCalled = true;
+            return reject(r);
+          }
+        );
+      } else {
+        resolve(x);
+      }
+    } catch (e) {
+      if (isCalled) return;
+      isCalled = true;
+      reject(e);
+    }
+  } else {
+    resolve(x);
+  }
+}
+
+// Execute your test cases
+const case1 = new FakePromise<number>((resolve) => {
   setTimeout(() => {
-    resolve(1)
-  })
-})
+    resolve(1);
+  });
+});
 
-case1.then(console.log) // => 1
+case1.then(console.log); // => 1
 
-const case2 = new FakePromise((resolve, reject) => {
+const case2 = new FakePromise<number>((resolve, reject) => {
   setTimeout(() => {
-    reject(Error('wrong'))
-  })
-})
+    reject(Error('wrong'));
+  });
+});
 
-case2.catch(console.error) // => Error('wrong')
+case2.catch(console.error); // => Error('wrong')
 
 const case3 = new FakePromise<number>((resolve) => {
   setTimeout(() => {
-    resolve(1)
-  })
-})
+    resolve(1);
+  });
+});
 
-case3.then(data => data++).then(console.log) // => 2
+case3.then(data => ++data).then(console.log); // => 2
 
-const case4 = new FakePromise((resolve) => {
-  resolve(4)
-})
+const case4 = new FakePromise<number>((resolve) => {
+  resolve(4);
+});
 
-case4.then(console.log) // => 4
+case4.then(console.log); // => 4
 
-const case5 = new FakePromise((resolve, reject) => {
-  reject(Error('wrong'))
-})
+const case5 = new FakePromise<number>((resolve, reject) => {
+  reject(Error('wrong'));
+});
 
-case5.catch(console.error) // => Error('wrong')
+case5.catch(console.error); // => Error('wrong')
