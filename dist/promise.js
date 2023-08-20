@@ -31,7 +31,7 @@ class FakePromise {
     }
     then(onFulfilled, onRejected) {
         return new FakePromise((resolve, reject) => {
-            const handleFulfilled = (value) => {
+            const handleFulfilled = () => {
                 setTimeout(() => {
                     if (typeof onFulfilled === "function") {
                         try {
@@ -64,7 +64,7 @@ class FakePromise {
                 });
             };
             if (this.state === "fulfilled") {
-                handleFulfilled(this.data);
+                handleFulfilled();
             }
             else if (this.state === "rejected") {
                 handleRejected();
