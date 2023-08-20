@@ -49,7 +49,7 @@ class FakePromise<T = any> {
         });
       };
 
-      const handleRejected = (reason: any) => {
+      const handleRejected = () => {
         setTimeout(() => {
           if (typeof onRejected === "function") {
             try {
@@ -67,7 +67,7 @@ class FakePromise<T = any> {
       if (this.state === "fulfilled") {
         handleFulfilled(this.data);
       } else if (this.state === "rejected") {
-        handleRejected(this.data);
+        handleRejected();
       } else if (this.state === "pending") {
         this.onFulfilledCallback.push(handleFulfilled);
         this.onRejectedCallback.push(handleRejected);

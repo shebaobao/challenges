@@ -47,7 +47,7 @@ class FakePromise {
                     }
                 });
             };
-            const handleRejected = (reason) => {
+            const handleRejected = () => {
                 setTimeout(() => {
                     if (typeof onRejected === "function") {
                         try {
@@ -67,7 +67,7 @@ class FakePromise {
                 handleFulfilled(this.data);
             }
             else if (this.state === "rejected") {
-                handleRejected(this.data);
+                handleRejected();
             }
             else if (this.state === "pending") {
                 this.onFulfilledCallback.push(handleFulfilled);
