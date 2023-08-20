@@ -144,7 +144,7 @@ const case1 = new FakePromise<number>((resolve) => {
 
 case1.then(console.log) // => 1
 
-const case2 = new FakePromise<number>((resolve, reject) => {
+const case2 = new FakePromise((resolve, reject) => {
   setTimeout(() => {
     reject(Error('wrong'))
   })
@@ -152,7 +152,7 @@ const case2 = new FakePromise<number>((resolve, reject) => {
 
 case2.catch(console.error) // => Error('wrong')
 
-const case3 = new FakePromise<number>((resolve) => {
+const case3 = new FakePromise((resolve) => {
   setTimeout(() => {
     resolve(1)
   })
@@ -160,13 +160,13 @@ const case3 = new FakePromise<number>((resolve) => {
 
 case3.then(data => ++data).then(console.log) // => 2
 
-const case4 = new FakePromise<number>((resolve) => {
+const case4 = new FakePromise((resolve) => {
   resolve(4)
 })
 
 case4.then(console.log) // => 4
 
-const case5 = new FakePromise<number>((resolve, reject) => {
+const case5 = new FakePromise((resolve, reject) => {
   reject(Error('wrong'))
 })
 
