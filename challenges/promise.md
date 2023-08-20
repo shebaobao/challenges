@@ -11,15 +11,14 @@
 ```ts
 
 type State = 'pending' | 'rejected' | 'fulfilled'
-type callbackType = (val: any) => any 
 
-class FakePromise {
+class FakePromise<T = any> {
   state: State = 'pending'
   value: any
   thenQueue: Function[] = []
   catchQueue: Function[] = []
     
-  constructor(callback: { (f1: callbackType, f2: callbackType): any }) {
+  constructor(callback: (resolve: (value: T) => void, reject?: (reason: any) => void) => void) {
     try{
       callback(this.onSuccess.bind(this), this.onFail.bind(this))
     } catch(e) {
@@ -45,7 +44,7 @@ class FakePromise {
     }
   }
   
-  onSuccess(value: any) {
+  onSuccess(value: T) {
   	queueMicrotask(() => {
       if (this.state !== 'pending') return
       this.state = 'fulfilled'
@@ -54,54 +53,52 @@ class FakePromise {
     })
   }
   
-  onFail(value: any) {
+  onFail(reason: any) {
   	queueMicrotask(() => {
       if (this.state !== 'pending') return
       this.state = 'rejected'
-      this.value = value
+      this.value = reason
       this.runCallbacks()
     })
   }
 
-  then(thenCb: callbackType, catchCb?: callbackType) {
+  then(onFulfilled?: (value: T) => void, onRejected?: (reason: any) => void) {
   	return new FakePromise((resolve, reject) => {
-  	      this.thenQueue.push(result => {
-  	        if (thenCb === null) {
+  	      this.thenQueue.push((result: T) => {
+  	        if (onFulfilled === null) {
   	          resolve(result)
   	          return 
   	        }
   	        
   	        try {
-  	          resolve(thenCb(result))
+  	          resolve(onFulfilled(result))
   	        } catch(e) {
   	          reject(e)
   	        }
-  	        
   	      })
   	      
-  	      this.catchQueue.push(result => {
-  	        if (catchCb === null) {
+  	      this.catchQueue.push((result: any) => {
+  	        if (onRejected === null) {
   	          reject(result)
   	          return 
   	        }
   	        
   	        try {
-  	          resolve(catchCb(result))
+  	          resolve(onRejected(result))
   	        } catch(e) {
   	          reject(e)
   	        }
-  	        
   	      })
   	
   	      this.runCallbacks()
   	    })
   }
 
-  catch(callback: callbackType) {
-  	this.then(undefined, callback)
+  catch(onRejected: (reason: any) => void) {
+  	this.then(undefined, onRejected)
   }
   
-  finally(callback: callbackType) {
+  finally(callback: () => void) {
   	return this.then(
     	result => {
       	callback()
@@ -113,30 +110,17 @@ class FakePromise {
       }
     )
   }
-  
-  static resolve(value: any) {
-  	return new FakePromise(resolve => {
-    	resolve(value)
-    })
-  }
-  
-  static reject(value: any) {
-  	return new FakePromise((resolve, reject) => {
-    	reject(value)
-    })
-  }
 }
 
-  const case1 = new FakePromise((resolve, reject) => {
+const case1 = new FakePromise((resolve, reject) => {
   setTimeout(() => {
     resolve(1)
-    reject(2)
-  })
+    })
   })
   
   case1.then(console.log) // => 1
   
-  const case2 = new FakePromise((resolve, reject) => {
+const case2 = new FakePromise((resolve, reject) => {
   setTimeout(() => {
     reject(Error('wrong'))
   })
@@ -144,13 +128,13 @@ class FakePromise {
   
   case2.catch(console.error) // => Error('wrong')
   
-  const case3 = new FakePromise((resolve, reject) => {
-    setTimeout(() => {
-      resolve(2)
-    })
+const case3 = new FakePromise((resolve, reject) => {
+  setTimeout(() => {
+    resolve(1)
   })
-  
-  case3.then(data => data++).then(console.log) // => 2
+})
+
+case3.then(data => data+1).then(console.log) // => 2
   
   
 const case4 = new FakePromise((resolve, reject) => {
@@ -164,4 +148,5 @@ const case5 = new FakePromise((resolve, reject) => {
 })
 
 case5.catch(console.error) // => Error('wrong')
+
 ```
