@@ -45,7 +45,7 @@ const case3 = new FakePromise((resolve, reject) => {
   })
 })
 
-case3.then(data => data++).then(console.log) // => 2
+case3.then(data => data+1).then(console.log) // => 2
 
 
 const case4 = new FakePromise((resolue, reject) => {
