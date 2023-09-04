@@ -1,5 +1,3 @@
-import ReactDOM from "react-dom";
-
 type StateSetter<T> = (newValue: T | ((prev: T) => T)) => void;
 type StateHookResult<T> = [T, StateSetter<T>];
 
@@ -23,7 +21,7 @@ function useState<T>(initialValue: T): StateHookResult<T> {
     } else {
       state[currentIndex] = newState;
     }
-    render();
+    // render();
   }
 
   setters[currentIndex] = setState;
@@ -32,33 +30,33 @@ function useState<T>(initialValue: T): StateHookResult<T> {
   return [state[currentIndex], setState];
 }
 
-function render(): void {
-  stateIndex = 0;
-  ReactDOM.render(<CaseA />, document.getElementById("root"));
-}
+// function render(): void {
+//   stateIndex = 0;
+//   ReactDOM.render(<CaseA />, document.getElementById("root"));
+// }
 
 
-// CaseA
-function CaseA () {
-  const [value, setValue] = useState(0)
+// // CaseA
+// function CaseA () {
+//   const [value, setValue] = useState(0)
 
-  return <>{value}<button onClick={() => setValue(value + 1)}>Add</button></>
-}
+//   return <>{value}<button onClick={() => setValue(value + 1)}>Add</button></>
+// }
 
-// CaseB
-function CaseB () {
-  const [value, setValue] = useState(0)
+// // CaseB
+// function CaseB () {
+//   const [value, setValue] = useState(0)
 
-  return <>{value}<button onClick={() => setValue(prev => prev + 1)}>Add</button></>
-}
+//   return <>{value}<button onClick={() => setValue(prev => prev + 1)}>Add</button></>
+// }
 
-// CaseC
-function CaseC () {
-  const [a, setA] = useState(0)
-  const [b, setB] = useState(0)
+// // CaseC
+// function CaseC () {
+//   const [a, setA] = useState(0)
+//   const [b, setB] = useState(0)
 
-  return <>
-    <p>{a}<button onClick={() => setA(a + 1)}>Add a</button></p>
-    <p>{b}<button onClick={() => setB(b + 1)}>Add b</button></p>
-  </>
-}
+//   return <>
+//     <p>{a}<button onClick={() => setA(a + 1)}>Add a</button></p>
+//     <p>{b}<button onClick={() => setB(b + 1)}>Add b</button></p>
+//   </>
+// }
