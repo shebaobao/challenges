@@ -3,49 +3,78 @@
 ## 内容
 
 ```ts
+
 import ReactDOM from 'react-dom/client'
 
 let stateIndex = -1
+let stateParent: any
+const componentState = new Map()
 const stateValues: any = []
 
-function render() {
+function render(parent: any) {
+  const state = componentState.get(parent) || {cache: []}
+  componentState.set(parent, {...state})
+  stateParent = parent
   stateIndex = -1
   effectIndex = -1
   ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(<App />)
 }
 
 function useMyState<T = any>(initialState?: T): [T, (done: T | ((state: T) => T)) => void] {
+  let index = stateIndex
+  const parent = stateParent
   stateIndex ++
 
-  let state: T | undefined
-  const currentIndex = stateIndex
+  return (() => {
+    const cache = componentState.get(parent) || []
+    if (cache[index] == null) {
+      cache[index] = {
+        value: typeof initialState === 'function' ? initialState() : initialState
+      }
+    }
 
-  state = stateValues[currentIndex] || initialState
+    const setState = (newState: T | ((state: T) => T)) => {
+      if (typeof newState === 'function') {
+        cache[index].value = (newState as (state: T) => T)(cache?.[index].value)
+      } else {
+        cache[index].value = newState
+      }
+      render(parent)
+    }
 
-  const setState = (newState: T | ((state: T) => T)) => {
-    state = typeof newState === 'function' ? (newState as (state: T) => T)(state as T) : newState
-    stateValues[currentIndex] = state
-    render()
-  }
-
-  return [state as T, setState]
+    return [cache[index].value as T, setState]
+  })()
 }
 
 let effectIndex = -1
 const effectValues: any = []
 
-function useMyEffect(callback: () => void, deps?: any[]) {
-  effectIndex ++ 
+function useMyEffect(callback: () => void, dependencies?: any[]) {
+  let index = stateIndex
+  const parent = stateParent
+  stateIndex ++ 
 
-  const lastDeps = effectValues[effectIndex]
-  if (
-      !lastDeps || 
-      !deps || 
-      deps?.some((dep, i) => dep !== lastDeps?.[i])
-    ) {
-    effectValues[effectIndex] = deps
-    callback()
-  }
+  (() => {
+    const cache = componentState.get(parent) || []
+    if (cache[index] == null) {
+      cache[index] = { dependencies: undefined }
+    }
+
+    const dependenciesChanged = 
+      dependencies == null || 
+      dependencies.some((dependency, i) => {
+        return (
+          cache[index].dependencies == null || 
+          cache[index].dependencies[i] !== dependency
+        )
+      })
+      
+    if (dependenciesChanged) {
+      if (cache[index].cleanup != null) cache[index].cleanup()
+      cache[index].cleanup = callback()
+      cache[index].dependencies = dependencies
+    }
+  })()
 }
 
 function App() {
@@ -56,21 +85,21 @@ function App() {
   const [num2, setNum2] = useMyState(0)
   const [num3, setNum3] = useMyState(0)
 
-  // useMyEffect(() => {
-  //   setInterval(() => setNum1(num1 + 1), 1000)
-  // }, [])
+  useMyEffect(() => {
+    setInterval(() => setNum1(num1 + 1), 1000)
+  }, [])
   
   useMyEffect(() => {
     setTimeout(() => setNum2(num2 + 1), 1000)
   }, [num2])
 
-  // useMyEffect(() => {
-  //   let i = 0
-  //   const interval = setInterval(() => setNum3(num3 + 1), 1000)
-  //   return () => {
-  //     clearInterval(interval)
-  //   }
-  // })
+  useMyEffect(() => {
+    let i = 0
+    const interval = setInterval(() => setNum3(num3 + 1), 1000)
+    return () => {
+      clearInterval(interval)
+    }
+  })
 
   // useEffect(() => {
   //   setInterval(() => setNum1(num1 + 1), 1000)
@@ -126,5 +155,6 @@ function App() {
 }
 
 export default App;
+
 
 ```
